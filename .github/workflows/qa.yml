@@ -20,3 +20,8 @@ jobs:
 
       - name: Run script
         run: node qa.js
+- name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: "*.png"
