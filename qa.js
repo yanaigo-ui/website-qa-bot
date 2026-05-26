@@ -75,4 +75,4 @@ const { chromium } = require('playwright');
 
       // Fill fields
       await page.fill('input[name*="First"]', 'QA');
-      await page.fill('input[name*="Last"]', 'Bot');
+      await page.fill('input[name*="Last"]', 'Bot'); 
