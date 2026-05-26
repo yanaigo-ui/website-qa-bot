@@ -6,25 +6,35 @@ const { chromium } = require('playwright');
 
   const TEST_EMAIL = "yanaig+testqa@checkpoint.com";
 
+  // ✅ Smooth scroll to trigger lazy loading
   async function scrollFullPage() {
     await page.evaluate(async () => {
       await new Promise((resolve) => {
         let totalHeight = 0;
         const distance = 500;
-
         const timer = setInterval(() => {
           window.scrollBy(0, distance);
           totalHeight += distance;
-
           if (totalHeight >= document.body.scrollHeight) {
             clearInterval(timer);
             resolve();
           }
-        }, 500);
+        }, 300);
       });
     });
   }
 
+  // ✅ Remove accessibility widget (prevents wrong clicks)
+  async function removeAccessibilityWidget() {
+    try {
+      await page.evaluate(() => {
+        const el = document.querySelector('[aria-label="Accessibility"]');
+        if (el) el.style.display = 'none';
+      });
+    } catch (e) {}
+  }
+
+  // ✅ Basic page load test
   async function safeLoad(name, url) {
     try {
       console.log(`Running ${name}`);
@@ -35,6 +45,7 @@ const { chromium } = require('playwright');
       await page.waitForTimeout(2000);
 
       await page.screenshot({ path: `${name}.png`, fullPage: true });
+
       console.log(`${name} loaded ✅`);
     } catch (e) {
       console.log(`${name} failed ❌`);
@@ -42,6 +53,7 @@ const { chromium } = require('playwright');
     }
   }
 
+  // ✅ CONTACT FORM SUBMISSION
   async function submitContact() {
     try {
       console.log("Submitting Contact");
@@ -49,21 +61,28 @@ const { chromium } = require('playwright');
       await page.goto('https://sase.checkpoint.com/contact', { waitUntil: 'networkidle' });
 
       await page.waitForTimeout(5000);
+      await removeAccessibilityWidget();
+      await scrollFullPage();
+      await page.waitForTimeout(2000);
 
-      await page.fill('input[type="text"]', 'QA Bot');
+      // Fill required fields (generic safe approach)
+      await page.fill('input[name*="First"]', 'QA');
+      await page.fill('input[name*="Last"]', 'Bot');
       await page.fill('input[type="email"]', TEST_EMAIL);
 
-      const textarea = await page.locator('textarea').first();
+      const textarea = page.locator('textarea').first();
       if (await textarea.count()) {
-        await textarea.fill('QA test submission');
+        await textarea.fill('QA automated test submission');
       }
 
       await page.screenshot({ path: 'contact-before.png', fullPage: true });
 
-      const btn = await page.locator('button, input[type=submit]').first();
-      await btn.click();
+      // ✅ Target correct submit button
+      const submitBtn = page.locator('button:has-text("Submit"), button:has-text("Send")');
 
-      await page.waitForTimeout(5000);
+      await submitBtn.first().click();
+
+      await page.waitForTimeout(6000);
 
       await page.screenshot({ path: 'contact-after.png', fullPage: true });
 
@@ -75,6 +94,7 @@ const { chromium } = require('playwright');
     }
   }
 
+  // ✅ DEMO FORM SUBMISSION (FULL FIX)
   async function submitDemo() {
     try {
       console.log("Submitting Demo");
@@ -82,16 +102,36 @@ const { chromium } = require('playwright');
       await page.goto('https://sase.checkpoint.com/demo', { waitUntil: 'networkidle' });
 
       await page.waitForTimeout(5000);
+      await removeAccessibilityWidget();
+      await scrollFullPage();
+      await page.waitForTimeout(2000);
 
-      await page.fill('input[type="text"]', 'QA Bot');
+      // ✅ Fill ALL required fields
+      await page.fill('input[name*="First"]', 'QA');
+      await page.fill('input[name*="Last"]', 'Bot');
       await page.fill('input[type="email"]', TEST_EMAIL);
+      await page.fill('input[name*="Company"]', 'QA Company');
+
+      // ✅ Handle dropdowns safely
+      const selects = await page.locator('select').all();
+      for (let select of selects) {
+        try {
+          await select.selectOption({ index: 1 });
+        } catch (e) {}
+      }
+
+      await page.waitForTimeout(2000);
 
       await page.screenshot({ path: 'demo-before.png', fullPage: true });
 
-      const btn = await page.locator('button, input[type=submit]').first();
-      await btn.click();
+      // ✅ TARGET EXACT CTA (fixes your issue)
+      const submitBtn = page.locator('button:has-text("Book a Demo")');
 
-      await page.waitForTimeout(5000);
+      await submitBtn.waitFor({ state: 'visible', timeout: 5000 });
+
+      await submitBtn.click();
+
+      await page.waitForTimeout(6000);
 
       await page.screenshot({ path: 'demo-after.png', fullPage: true });
 
@@ -103,7 +143,7 @@ const { chromium } = require('playwright');
     }
   }
 
-  // Run steps
+  // ✅ Run flow
   await safeLoad("homepage", "https://sase.checkpoint.com/");
   await safeLoad("contact", "https://sase.checkpoint.com/contact");
   await safeLoad("demo", "https://sase.checkpoint.com/demo");
