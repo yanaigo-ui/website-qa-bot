@@ -96,53 +96,53 @@ const { chromium } = require('playwright');
 
   // ✅ DEMO FORM SUBMISSION (FULL FIX)
   async function submitDemo() {
-    try {
-      console.log("Submitting Demo");
+  try {
+    console.log("Submitting Demo");
 
-      await page.goto('https://sase.checkpoint.com/demo', { waitUntil: 'networkidle' });
+    await page.goto('https://sase.checkpoint.com/demo', { waitUntil: 'networkidle' });
 
-      await page.waitForTimeout(5000);
-      await removeAccessibilityWidget();
-      await scrollFullPage();
-      await page.waitForTimeout(2000);
+    await page.waitForTimeout(5000);
 
-      // ✅ Fill ALL required fields
-      await page.fill('input[name*="First"]', 'QA');
-      await page.fill('input[name*="Last"]', 'Bot');
-      await page.fill('input[type="email"]', TEST_EMAIL);
-      await page.fill('input[name*="Company"]', 'QA Company');
+    // Fill required fields
+    await page.fill('input[name*="First"]', 'QA');
+    await page.fill('input[name*="Last"]', 'Bot');
+    await page.fill('input[type="email"]', TEST_EMAIL);
 
-      // ✅ Handle dropdowns safely
-      const selects = await page.locator('select').all();
-      for (let select of selects) {
-        try {
-          await select.selectOption({ index: 1 });
-        } catch (e) {}
-      }
+    await page.fill('input[name*="Company"]', 'QA Company');
 
-      await page.waitForTimeout(2000);
-
-      await page.screenshot({ path: 'demo-before.png', fullPage: true });
-
-      // ✅ TARGET EXACT CTA (fixes your issue)
-      const submitBtn = page.locator('button:has-text("Book a Demo")');
-
-      await submitBtn.waitFor({ state: 'visible', timeout: 5000 });
-
-      await submitBtn.click();
-
-      await page.waitForTimeout(6000);
-
-      await page.screenshot({ path: 'demo-after.png', fullPage: true });
-
-      console.log("Demo submitted ✅");
-
-    } catch (e) {
-      console.log("Demo failed ❌", e);
-      await page.screenshot({ path: 'demo-error.png', fullPage: true });
+    // Handle dropdowns
+    // Company Size
+    const sizeDropdown = page.locator('select').nth(0);
+    if (await sizeDropdown.count()) {
+      await sizeDropdown.selectOption({ index: 1 });
     }
-  }
 
+    // Country
+    const countryDropdown = page.locator('select').nth(1);
+    if (await countryDropdown.count()) {
+      await countryDropdown.selectOption({ index: 1 });
+    }
+
+    await page.screenshot({ path: 'demo-before.png', fullPage: true });
+
+    // ✅ Target ONLY the real CTA
+    const submitBtn = page.locator('button:has-text("Book a Demo")');
+
+    await submitBtn.waitFor({ state: 'visible', timeout: 5000 });
+
+    await submitBtn.click();
+
+    await page.waitForTimeout(6000);
+
+    await page.screenshot({ path: 'demo-after.png', fullPage: true });
+
+    console.log("Demo submitted ✅");
+
+  } catch (e) {
+    console.log("Demo failed ❌", e);
+    await page.screenshot({ path: 'demo-error.png', fullPage: true });
+  }
+}
   // ✅ Run flow
   await safeLoad("homepage", "https://sase.checkpoint.com/");
   await safeLoad("contact", "https://sase.checkpoint.com/contact");
